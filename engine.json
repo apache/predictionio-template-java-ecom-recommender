@@ -1,0 +1,23 @@
+{
+  "id": "default",
+  "description": "Default settings",
+  "engineFactory": "org.template.recommendation.RecommendationEngine",
+  "datasource": {
+    "params" : {
+      "appName": "javadase"
+    }
+  },
+  "algorithms": [
+    {
+      "name": "algo",
+      "params": {
+        "seed": 1,
+        "rank": 10,
+        "iteration": 30,
+        "lambda": 0.01,
+        "appName": "javadase",
+        "similarItemEvents": ["view"]
+      }
+    }
+  ]
+}
