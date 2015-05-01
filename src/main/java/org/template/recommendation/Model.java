@@ -4,6 +4,7 @@ import io.prediction.controller.Params;
 import io.prediction.controller.PersistentModel;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,13 +18,15 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
     private final JavaPairRDD<String, Long> userIndexRDD;
     private final Map<Long, String> indexItemMap;
     private final JavaPairRDD<String, Long> itemIndexRDD;
+    private final JavaRDD<ItemScore> itemPopularityScore;
 
-    public Model(Map<Object, double[]> userFeatures, Map<Object, double[]> productFeatures, JavaPairRDD<String, Long> userIndexRDD, Map<Long, String> itemIndexMap, JavaPairRDD<String, Long> itemIndexRDD) {
+    public Model(Map<Object, double[]> userFeatures, Map<Object, double[]> productFeatures, JavaPairRDD<String, Long> userIndexRDD, Map<Long, String> itemIndexMap, JavaPairRDD<String, Long> itemIndexRDD, JavaRDD<ItemScore> itemPopularityScore) {
         this.userFeatures = userFeatures;
         this.productFeatures = productFeatures;
         this.userIndexRDD = userIndexRDD;
         this.indexItemMap = itemIndexMap;
         this.itemIndexRDD = itemIndexRDD;
+        this.itemPopularityScore = itemPopularityScore;
     }
 
     public Map<Object, double[]> getUserFeatures() {
@@ -44,6 +47,10 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
 
     public JavaPairRDD<String, Long> getItemIndexRDD() {
         return itemIndexRDD;
+    }
+
+    public JavaRDD<ItemScore> getItemPopularityScore() {
+        return itemPopularityScore;
     }
 
     @Override

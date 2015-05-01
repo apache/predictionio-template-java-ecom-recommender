@@ -42,6 +42,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
     public Model train(SparkContext sc, PreparedData preparedData) {
         TrainingData data = preparedData.getTrainingData();
 
+        // user stuff
         JavaPairRDD<String, Long> userIndexRDD = data.getUsers().map(new Function<Tuple2<String, User>, String>() {
             @Override
             public String call(Tuple2<String, User> idUser) throws Exception {
@@ -50,6 +51,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         }).zipWithIndex();
         final Map<String, Long> userIndexMap = userIndexRDD.collectAsMap();
 
+        // item stuff
         JavaPairRDD<String, Long> itemIndexRDD = data.getItems().map(new Function<Tuple2<String, Item>, String>() {
             @Override
             public String call(Tuple2<String, Item> idItem) throws Exception {
@@ -57,13 +59,14 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             }
         }).zipWithIndex();
         final Map<String, Long> itemIndexMap = itemIndexRDD.collectAsMap();
-        Map<Long, String> indexItemMap = itemIndexRDD.mapToPair(new PairFunction<Tuple2<String, Long>, Long, String>() {
+        final Map<Long, String> indexItemMap = itemIndexRDD.mapToPair(new PairFunction<Tuple2<String, Long>, Long, String>() {
             @Override
             public Tuple2<Long, String> call(Tuple2<String, Long> element) throws Exception {
                 return element.swap();
             }
         }).collectAsMap();
 
+        // ratings stuff
         JavaRDD<Rating> ratings = data.getViewEvents().mapToPair(new PairFunction<UserItemEvent, Tuple2<Integer, Integer>, Integer>() {
             @Override
             public Tuple2<Tuple2<Integer, Integer>, Integer> call(UserItemEvent viewEvent) throws Exception {
@@ -92,12 +95,38 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         if (ratings.isEmpty())
             throw new AssertionError("Please check if your events contain valid user and item ID.");
 
+        // MLlib ALS stuff
         MatrixFactorizationModel matrixFactorizationModel = ALS.trainImplicit(JavaRDD.toRDD(ratings), ap.getRank(), ap.getIteration(), ap.getLambda(), -1, 1.0, ap.getSeed());
-
         Map<Object, double[]> userFeatures = JavaPairRDD.fromJavaRDD(matrixFactorizationModel.userFeatures().toJavaRDD()).collectAsMap();
         Map<Object, double[]> productFeatures = JavaPairRDD.fromJavaRDD(matrixFactorizationModel.productFeatures().toJavaRDD()).collectAsMap();
 
-        return new Model(userFeatures, productFeatures, userIndexRDD, indexItemMap, itemIndexRDD);
+        // popularity scores
+        JavaRDD<ItemScore> itemPopularityScore = data.getBuyEvents().mapToPair(new PairFunction<UserItemEvent, Tuple2<Integer, Integer>, Integer>() {
+            @Override
+            public Tuple2<Tuple2<Integer, Integer>, Integer> call(UserItemEvent buyEvent) throws Exception {
+                Long userIndex = userIndexMap.get(buyEvent.getUser());
+                Long itemIndex = itemIndexMap.get(buyEvent.getItem());
+
+                return (userIndex == null || itemIndex == null) ? null : new Tuple2<>(new Tuple2<>(userIndex.intValue(), itemIndex.intValue()), 1);
+            }
+        }).filter(new Function<Tuple2<Tuple2<Integer, Integer>, Integer>, Boolean>() {
+            @Override
+            public Boolean call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
+                return (element != null);
+            }
+        }).reduceByKey(new Function2<Integer, Integer, Integer>() {
+            @Override
+            public Integer call(Integer integer, Integer integer2) throws Exception {
+                return integer + integer2;
+            }
+        }).map(new Function<Tuple2<Tuple2<Integer, Integer>, Integer>, ItemScore>() {
+            @Override
+            public ItemScore call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
+                return new ItemScore(indexItemMap.get(element._1()._2().longValue()), element._2().doubleValue());
+            }
+        });
+
+        return new Model(userFeatures, productFeatures, userIndexRDD, indexItemMap, itemIndexRDD, itemPopularityScore);
     }
 
     @Override
@@ -119,7 +148,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         } else {
             List<double[]> recentProductFeatures = getRecentProductFeatures(query, model.getProductFeatures(), model.getItemIndexRDD());
             if (recentProductFeatures.isEmpty()) {
-                return new PredictedResult(mostPopularItems());
+                return new PredictedResult(mostPopularItems(model.getItemPopularityScore(), query.getNumber()));
             } else {
                 return new PredictedResult(similarItems(recentProductFeatures, model.getProductFeatures(), model.getIndexItemMap(), query.getNumber()));
             }
@@ -145,7 +174,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
                     Duration.apply(200, TimeUnit.MILLISECONDS)
             ).toSeq());
 
-            for (final Event event: events) {
+            for (final Event event : events) {
                 if (event.targetEntityId().isDefined()) {
                     JavaPairRDD<String, Long> filtered = itemIndexRDD.filter(new Function<Tuple2<String, Long>, Boolean>() {
                         @Override
@@ -172,7 +201,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         Set<Object> keys = productFeatures.keySet();
         List<ItemScore> itemScores = new ArrayList<>(productFeatures.size());
         for (Object key : keys) {
-            long longKey = ((Integer)key).longValue();
+            long longKey = ((Integer) key).longValue();
             double score = userMatrix.dot(new DoubleMatrix(productFeatures.get(key)));
             itemScores.add(new ItemScore(indexItemMap.get(longKey), score));
         }
@@ -186,7 +215,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         Set<Object> productKeys = productFeatures.keySet();
         List<ItemScore> itemScores = new ArrayList<>(productFeatures.size());
         for (Object key : productKeys) {
-            long longKey = ((Integer)key).longValue();
+            long longKey = ((Integer) key).longValue();
             double[] feature = productFeatures.get(key);
             double similarity = 0.0;
             for (double[] recentFeature : recentProductFeatures) {
@@ -200,8 +229,14 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         return itemScores.subList(0, Math.min(number, itemScores.size()));
     }
 
-    private List<ItemScore> mostPopularItems() {
-        return Collections.emptyList();
+    private List<ItemScore> mostPopularItems(JavaRDD<ItemScore> itemPopularityScore, int number) {
+        return itemPopularityScore.sortBy(new Function<ItemScore, Double>() {
+            @Override
+            public Double call(ItemScore itemScore) throws Exception {
+                return itemScore.getScore();
+            }
+        }, false, itemPopularityScore.partitions().size()).take(number);
+
     }
 
     private double cosineSimilarity(double[] a, double[] b) {
