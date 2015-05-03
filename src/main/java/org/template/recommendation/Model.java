@@ -19,14 +19,16 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
     private final Map<Long, String> indexItemMap;
     private final JavaPairRDD<String, Long> itemIndexRDD;
     private final JavaRDD<ItemScore> itemPopularityScore;
+    private final JavaPairRDD<String, Item> items;
 
-    public Model(Map<Object, double[]> userFeatures, Map<Object, double[]> productFeatures, JavaPairRDD<String, Long> userIndexRDD, Map<Long, String> itemIndexMap, JavaPairRDD<String, Long> itemIndexRDD, JavaRDD<ItemScore> itemPopularityScore) {
+    public Model(Map<Object, double[]> userFeatures, Map<Object, double[]> productFeatures, JavaPairRDD<String, Long> userIndexRDD, Map<Long, String> itemIndexMap, JavaPairRDD<String, Long> itemIndexRDD, JavaRDD<ItemScore> itemPopularityScore, JavaPairRDD<String, Item> items) {
         this.userFeatures = userFeatures;
         this.productFeatures = productFeatures;
         this.userIndexRDD = userIndexRDD;
         this.indexItemMap = itemIndexMap;
         this.itemIndexRDD = itemIndexRDD;
         this.itemPopularityScore = itemPopularityScore;
+        this.items = items;
     }
 
     public Map<Object, double[]> getUserFeatures() {
@@ -51,6 +53,10 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
 
     public JavaRDD<ItemScore> getItemPopularityScore() {
         return itemPopularityScore;
+    }
+
+    public JavaPairRDD<String, Item> getItems() {
+        return items;
     }
 
     @Override

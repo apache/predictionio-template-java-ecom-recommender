@@ -1,5 +1,6 @@
 package org.template.recommendation;
 
+import com.google.common.collect.Sets;
 import io.prediction.controller.PAlgorithm;
 import io.prediction.data.storage.Event;
 import io.prediction.data.store.LEventStore;
@@ -126,7 +127,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             }
         });
 
-        return new Model(userFeatures, productFeatures, userIndexRDD, indexItemMap, itemIndexRDD, itemPopularityScore);
+        return new Model(userFeatures, productFeatures, userIndexRDD, indexItemMap, itemIndexRDD, itemPopularityScore, data.getItems());
     }
 
     @Override
@@ -144,13 +145,13 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         }
 
         if (userFeature != null) {
-            return new PredictedResult(topItemsForUser(userFeature, model.getProductFeatures(), model.getIndexItemMap(), query.getNumber()));
+            return new PredictedResult(topItemsForUser(userFeature, model, query));
         } else {
             List<double[]> recentProductFeatures = getRecentProductFeatures(query, model.getProductFeatures(), model.getItemIndexRDD());
             if (recentProductFeatures.isEmpty()) {
-                return new PredictedResult(mostPopularItems(model.getItemPopularityScore(), query.getNumber()));
+                return new PredictedResult(mostPopularItems(model, query));
             } else {
-                return new PredictedResult(similarItems(recentProductFeatures, model.getProductFeatures(), model.getIndexItemMap(), query.getNumber()));
+                return new PredictedResult(similarItems(recentProductFeatures, model, query));
             }
         }
     }
@@ -196,47 +197,46 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         }
     }
 
-    private List<ItemScore> topItemsForUser(double[] userFeature, Map<Object, double[]> productFeatures, Map<Long, String> indexItemMap, int number) {
+    private List<ItemScore> topItemsForUser(double[] userFeature, Model model, Query query) {
         DoubleMatrix userMatrix = new DoubleMatrix(userFeature);
-        Set<Object> keys = productFeatures.keySet();
-        List<ItemScore> itemScores = new ArrayList<>(productFeatures.size());
+        Set<Object> keys = model.getProductFeatures().keySet();
+        List<ItemScore> itemScores = new ArrayList<>(model.getProductFeatures().size());
         for (Object key : keys) {
             long longKey = ((Integer) key).longValue();
-            double score = userMatrix.dot(new DoubleMatrix(productFeatures.get(key)));
-            itemScores.add(new ItemScore(indexItemMap.get(longKey), score));
+            double score = userMatrix.dot(new DoubleMatrix(model.getProductFeatures().get(key)));
+            itemScores.add(new ItemScore(model.getIndexItemMap().get(longKey), score));
         }
 
+        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
         Collections.sort(itemScores, Collections.reverseOrder());
 
-        return itemScores.subList(0, Math.min(number, itemScores.size()));
+        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
     }
 
-    private List<ItemScore> similarItems(List<double[]> recentProductFeatures, Map<Object, double[]> productFeatures, Map<Long, String> indexItemMap, int number) {
-        Set<Object> productKeys = productFeatures.keySet();
-        List<ItemScore> itemScores = new ArrayList<>(productFeatures.size());
+    private List<ItemScore> similarItems(List<double[]> recentProductFeatures, Model model, Query query) {
+        Set<Object> productKeys = model.getProductFeatures().keySet();
+        List<ItemScore> itemScores = new ArrayList<>(model.getProductFeatures().size());
         for (Object key : productKeys) {
             long longKey = ((Integer) key).longValue();
-            double[] feature = productFeatures.get(key);
+            double[] feature = model.getProductFeatures().get(key);
             double similarity = 0.0;
             for (double[] recentFeature : recentProductFeatures) {
                 similarity += cosineSimilarity(feature, recentFeature);
             }
-            itemScores.add(new ItemScore(indexItemMap.get(longKey), similarity));
+            itemScores.add(new ItemScore(model.getIndexItemMap().get(longKey), similarity));
         }
 
+        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
         Collections.sort(itemScores, Collections.reverseOrder());
 
-        return itemScores.subList(0, Math.min(number, itemScores.size()));
+        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
     }
 
-    private List<ItemScore> mostPopularItems(JavaRDD<ItemScore> itemPopularityScore, int number) {
-        return itemPopularityScore.sortBy(new Function<ItemScore, Double>() {
-            @Override
-            public Double call(ItemScore itemScore) throws Exception {
-                return itemScore.getScore();
-            }
-        }, false, itemPopularityScore.partitions().size()).take(number);
+    private List<ItemScore> mostPopularItems(Model model, Query query) {
+        List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
+        Collections.sort(itemScores, Collections.reverseOrder());
 
+        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
     }
 
     private double cosineSimilarity(double[] a, double[] b) {
@@ -246,4 +246,28 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         return matrixA.dot(matrixB) / (matrixA.norm2() * matrixB.norm2());
     }
 
+    private List<ItemScore> validScores(List<ItemScore> all, Set<String> whitelist, Set<String> blacklist, Set<String> categories, JavaPairRDD<String, Item> items) {
+        if (whitelist.isEmpty() && blacklist.isEmpty() && categories.isEmpty()) return all;
+
+        List<ItemScore> result = new ArrayList<>();
+        for (final ItemScore itemScore : all) {
+            JavaPairRDD<String, Item> possibleItems = items.filter(new Function<Tuple2<String, Item>, Boolean>() {
+                @Override
+                public Boolean call(Tuple2<String, Item> element) throws Exception {
+                    return element._1().equals(itemScore.getItemEntityId());
+                }
+            });
+
+            if (!possibleItems.isEmpty()) {
+                Item item = possibleItems.first()._2();
+                if ((whitelist.isEmpty() || whitelist.contains(itemScore.getItemEntityId())) &&
+                        !blacklist.contains(itemScore.getItemEntityId()) &&
+                        (categories.isEmpty() || Sets.intersection(categories, item.getCategories()).size() > 0)) {
+                    result.add(itemScore);
+                }
+            }
+        }
+
+        return result;
+    }
 }

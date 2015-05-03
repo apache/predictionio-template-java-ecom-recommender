@@ -1,13 +1,13 @@
 package org.template.recommendation;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Set;
 
 public class Item implements Serializable{
-    private final List<String> categories;
+    private final Set<String> categories;
     private final String entityId;
 
-    public Item(String entityId, List<String> categories) {
+    public Item(String entityId, Set<String> categories) {
         this.categories = categories;
         this.entityId = entityId;
     }
@@ -16,7 +16,7 @@ public class Item implements Serializable{
         return entityId;
     }
 
-    public List<String> getCategories() {
+    public Set<String> getCategories() {
         return categories;
     }
 

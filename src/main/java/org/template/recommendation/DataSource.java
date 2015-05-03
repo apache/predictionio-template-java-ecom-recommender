@@ -1,7 +1,7 @@
 package org.template.recommendation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.prediction.controller.EmptyParams;
 import io.prediction.controller.PDataSource;
 import io.prediction.data.storage.Event;
@@ -69,7 +69,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
                     @Override
                     public Tuple2<String, Item> call(Tuple2<String, PropertyMap> entityIdProperty) throws Exception {
                         List<String> categories = JavaConversions$.MODULE$.seqAsJavaList(Helper.dataMapGetStringList(entityIdProperty._2(), "categories"));
-                        Item item = new Item(entityIdProperty._1(), ImmutableList.copyOf(categories));
+                        Item item = new Item(entityIdProperty._1(), ImmutableSet.copyOf(categories));
 
                         return new Tuple2<>(item.getEntityId(), item);
                     }
