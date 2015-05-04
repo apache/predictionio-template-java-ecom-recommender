@@ -13,7 +13,7 @@
       "params": {
         "seed": 1,
         "rank": 10,
-        "iteration": 30,
+        "iteration": 10,
         "lambda": 0.01,
         "appName": "javadase",
         "similarItemEvents": ["view"]

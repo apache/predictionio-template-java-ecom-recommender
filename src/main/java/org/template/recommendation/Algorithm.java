@@ -136,15 +136,20 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             public Boolean call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
                 return (element != null);
             }
+        }).mapToPair(new PairFunction<Tuple2<Tuple2<Integer,Integer>,Integer>, Integer, Integer>() {
+            @Override
+            public Tuple2<Integer, Integer> call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
+                return new Tuple2<>(element._1()._2(), element._2());
+            }
         }).reduceByKey(new Function2<Integer, Integer, Integer>() {
             @Override
             public Integer call(Integer integer, Integer integer2) throws Exception {
                 return integer + integer2;
             }
-        }).map(new Function<Tuple2<Tuple2<Integer, Integer>, Integer>, ItemScore>() {
+        }).map(new Function<Tuple2<Integer, Integer>, ItemScore>() {
             @Override
-            public ItemScore call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
-                return new ItemScore(indexItemMap.get(element._1()._2()), element._2().doubleValue());
+            public ItemScore call(Tuple2<Integer, Integer> element) throws Exception {
+                return new ItemScore(indexItemMap.get(element._1()), element._2().doubleValue());
             }
         });
 
