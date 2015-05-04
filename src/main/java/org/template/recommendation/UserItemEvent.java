@@ -1,6 +1,8 @@
 package org.template.recommendation;
 
-public class UserItemEvent {
+import java.io.Serializable;
+
+public class UserItemEvent implements Serializable {
     private final String user;
     private final String item;
     private final long time;

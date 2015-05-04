@@ -33,7 +33,7 @@ def import_events(client):
     print "Set itemEntityId", item_id
     client.create_event(
       event="$set",
-      entity_type="itemEntityId",
+      entity_type="item",
       entity_id=item_id,
       properties={
         "categories" : random.sample(categories, random.randint(1, 4))

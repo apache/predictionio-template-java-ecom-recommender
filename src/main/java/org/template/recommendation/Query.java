@@ -1,6 +1,7 @@
 package org.template.recommendation;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Set;
 
 public class Query implements Serializable{
@@ -27,14 +28,17 @@ public class Query implements Serializable{
     }
 
     public Set<String> getCategories() {
+        if (categories == null) return Collections.emptySet();
         return categories;
     }
 
     public Set<String> getWhitelist() {
+        if (whitelist == null) return Collections.emptySet();
         return whitelist;
     }
 
     public Set<String> getBlacklist() {
+        if (blacklist == null) return Collections.emptySet();
         return blacklist;
     }
 

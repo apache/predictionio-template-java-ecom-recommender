@@ -63,7 +63,7 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
     public boolean save(String id, AlgorithmParams params, SparkContext sc) {
 
         logger.info("saved model");
-        return true;
+        return false;
     }
 
     public static Model load(String id, Params params, SparkContext sc) {
