@@ -5,50 +5,45 @@ import io.prediction.controller.PersistentModel;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Tuple2;
 
 import java.io.Serializable;
-import java.util.Map;
 
 public class Model implements Serializable, PersistentModel<AlgorithmParams> {
     private static final Logger logger = LoggerFactory.getLogger(Model.class);
-    private final Map<Object, double[]> userFeatures;
-    private final Map<Object, double[]> productFeatures;
-    private final JavaPairRDD<String, Long> userIndexRDD;
-    private final Map<Long, String> indexItemMap;
-    private final JavaPairRDD<String, Long> itemIndexRDD;
+    private final JavaPairRDD<Integer, double[]> userFeatures;
+    private final JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures;
+    private final JavaPairRDD<String, Integer> userIndex;
+    private final JavaPairRDD<String, Integer> itemIndex;
     private final JavaRDD<ItemScore> itemPopularityScore;
     private final JavaPairRDD<String, Item> items;
 
-    public Model(Map<Object, double[]> userFeatures, Map<Object, double[]> productFeatures, JavaPairRDD<String, Long> userIndexRDD, Map<Long, String> itemIndexMap, JavaPairRDD<String, Long> itemIndexRDD, JavaRDD<ItemScore> itemPopularityScore, JavaPairRDD<String, Item> items) {
+    public Model(JavaPairRDD<Integer, double[]> userFeatures, JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures, JavaPairRDD<String, Integer> userIndex, JavaPairRDD<String, Integer> itemIndex, JavaRDD<ItemScore> itemPopularityScore, JavaPairRDD<String, Item> items) {
         this.userFeatures = userFeatures;
-        this.productFeatures = productFeatures;
-        this.userIndexRDD = userIndexRDD;
-        this.indexItemMap = itemIndexMap;
-        this.itemIndexRDD = itemIndexRDD;
+        this.indexItemFeatures = indexItemFeatures;
+        this.userIndex = userIndex;
+        this.itemIndex = itemIndex;
         this.itemPopularityScore = itemPopularityScore;
         this.items = items;
     }
 
-    public Map<Object, double[]> getUserFeatures() {
+    public JavaPairRDD<Integer, double[]> getUserFeatures() {
         return userFeatures;
     }
 
-    public Map<Object, double[]> getProductFeatures() {
-        return productFeatures;
+    public JavaPairRDD<Integer, Tuple2<String, double[]>> getIndexItemFeatures() {
+        return indexItemFeatures;
     }
 
-    public JavaPairRDD<String, Long> getUserIndexRDD() {
-        return userIndexRDD;
+    public JavaPairRDD<String, Integer> getUserIndex() {
+        return userIndex;
     }
 
-    public Map<Long, String> getIndexItemMap() {
-        return indexItemMap;
-    }
-
-    public JavaPairRDD<String, Long> getItemIndexRDD() {
-        return itemIndexRDD;
+    public JavaPairRDD<String, Integer> getItemIndex() {
+        return itemIndex;
     }
 
     public JavaRDD<ItemScore> getItemPopularityScore() {
@@ -61,14 +56,27 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
 
     @Override
     public boolean save(String id, AlgorithmParams params, SparkContext sc) {
+        userFeatures.saveAsObjectFile("/tmp/" + id + "/userFeatures");
+        indexItemFeatures.saveAsObjectFile("/tmp/" + id + "/indexItemFeatures");
+        userIndex.saveAsObjectFile("/tmp/" + id + "/userIndex");
+        itemIndex.saveAsObjectFile("/tmp/" + id + "/itemIndex");
+        itemPopularityScore.saveAsObjectFile("/tmp/" + id + "/itemPopularityScore");
+        items.saveAsObjectFile("/tmp/" + id + "/items");
 
-        logger.info("saved model");
-        return false;
+        logger.info("Saved model to /tmp/" + id);
+        return true;
     }
 
     public static Model load(String id, Params params, SparkContext sc) {
+        JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc);
+        JavaPairRDD<Integer, double[]> userFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, double[]>>objectFile("/tmp/" + id + "/userFeatures"));
+        JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, Tuple2<String, double[]>>>objectFile("/tmp/" + id + "/indexItemFeatures"));
+        JavaPairRDD<String, Integer> userIndex = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/userIndex"));
+        JavaPairRDD<String, Integer> itemIndex = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/itemIndex"));
+        JavaRDD<ItemScore> itemPopularityScore = jsc.objectFile("/tmp/" + id + "/itemPopularityScore");
+        JavaPairRDD<String, Item> items = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Item>>objectFile("/tmp/" + id + "/items"));
 
         logger.info("loaded model");
-        return null;
+        return new Model(userFeatures, indexItemFeatures, userIndex, itemIndex, itemPopularityScore, items);
     }
 }
