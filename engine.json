@@ -16,7 +16,9 @@
         "iteration": 10,
         "lambda": 0.01,
         "appName": "javadase",
-        "similarItemEvents": ["view"]
+        "similarItemEvents": ["view"],
+        "seenItemEvents": ["buy", "view"],
+        "unseenOnly": true
       }
     }
   ]

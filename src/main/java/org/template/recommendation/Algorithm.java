@@ -24,6 +24,7 @@ import scala.concurrent.duration.Duration;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -136,7 +137,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             public Boolean call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
                 return (element != null);
             }
-        }).mapToPair(new PairFunction<Tuple2<Tuple2<Integer,Integer>,Integer>, Integer, Integer>() {
+        }).mapToPair(new PairFunction<Tuple2<Tuple2<Integer, Integer>, Integer>, Integer, Integer>() {
             @Override
             public Tuple2<Integer, Integer> call(Tuple2<Tuple2<Integer, Integer>, Integer> element) throws Exception {
                 return new Tuple2<>(element._1()._2(), element._2());
@@ -248,7 +249,7 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             }
         }).collect();
 
-        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
+        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
 
         return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
@@ -267,14 +268,14 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
             }
         }).collect();
 
-        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
+        itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
 
         return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
     }
 
     private List<ItemScore> mostPopularItems(Model model, Query query) {
-        List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems());
+        List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
 
         return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
@@ -287,10 +288,10 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         return matrixA.dot(matrixB) / (matrixA.norm2() * matrixB.norm2());
     }
 
-    private List<ItemScore> validScores(List<ItemScore> all, Set<String> whitelist, Set<String> blacklist, Set<String> categories, JavaPairRDD<String, Item> items) {
-        if (whitelist.isEmpty() && blacklist.isEmpty() && categories.isEmpty()) return all;
-
+    private List<ItemScore> validScores(List<ItemScore> all, Set<String> whitelist, Set<String> blacklist, Set<String> categories, JavaPairRDD<String, Item> items, String userEntityId) {
         List<ItemScore> result = new ArrayList<>();
+        Set<String> seenItemEntityIds = seenItemEntityIds(userEntityId);
+        Set<String> unavailableItemEntityIds = unavailableItemEntityIds();
         for (final ItemScore itemScore : all) {
             JavaPairRDD<String, Item> possibleItems = items.filter(new Function<Tuple2<String, Item>, Boolean>() {
                 @Override
@@ -301,14 +302,97 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
 
             if (!possibleItems.isEmpty()) {
                 Item item = possibleItems.first()._2();
-                if ((whitelist.isEmpty() || whitelist.contains(itemScore.getItemEntityId())) &&
-                        !blacklist.contains(itemScore.getItemEntityId()) &&
-                        (categories.isEmpty() || Sets.intersection(categories, item.getCategories()).size() > 0)) {
+                if (passWhitelistCriteria(whitelist, item.getEntityId())
+                        && passBlacklistCriteria(blacklist, item.getEntityId())
+                        && passCategoryCriteria(categories, item)
+                        && passUnseenCriteria(seenItemEntityIds, item.getEntityId())
+                        && passAvailabilityCriteria(unavailableItemEntityIds, item.getEntityId())) {
                     result.add(itemScore);
                 }
             }
         }
 
         return result;
+    }
+
+    private boolean passWhitelistCriteria(Set<String> whitelist, String itemEntityId) {
+        return (whitelist.isEmpty() || whitelist.contains(itemEntityId));
+    }
+
+    private boolean passBlacklistCriteria(Set<String> blacklist, String itemEntityId) {
+        return !blacklist.contains(itemEntityId);
+    }
+
+    private boolean passCategoryCriteria(Set<String> categories, Item item) {
+        return (categories.isEmpty() || Sets.intersection(categories, item.getCategories()).size() > 0);
+    }
+
+    private boolean passUnseenCriteria(Set<String> seen, String itemEntityId) {
+        return !seen.contains(itemEntityId);
+    }
+
+    private boolean passAvailabilityCriteria(Set<String> unavailableItemEntityIds, String entityId) {
+        return !unavailableItemEntityIds.contains(entityId);
+    }
+
+    private Set<String> unavailableItemEntityIds() {
+        try {
+            List<Event> unavailableConstraintEvents = JavaConversions.asJavaList(LEventStore.findByEntity(
+                    ap.getAppName(),
+                    "constraint",
+                    "unavailableItems",
+                    Option.apply((String) null),
+                    Option.apply(JavaConversions.asScalaIterable(Collections.singletonList("$set")).toSeq()),
+                    Option.apply(Option.apply((String) null)),
+                    Option.apply((Option<String>) null),
+                    Option.apply((DateTime) null),
+                    Option.apply((DateTime) null),
+                    Option.apply((Object) 1),
+                    true,
+                    Duration.apply(200, TimeUnit.MILLISECONDS)
+            ).toSeq());
+
+            if (unavailableConstraintEvents.isEmpty()) return Collections.emptySet();
+
+            Event unavailableConstraint = unavailableConstraintEvents.get(0);
+
+            List<String> unavailableItems = JavaConversions.asJavaList(Helper.dataMapGetStringList(unavailableConstraint.properties(), "items"));
+
+            return new HashSet<>(unavailableItems);
+        } catch (Exception e) {
+            logger.error("Error reading constraint events");
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    private Set<String> seenItemEntityIds(String userEntityId) {
+        if (!ap.isUnseenOnly()) return Collections.emptySet();
+
+        try {
+            Set<String> result = new HashSet<>();
+            List<Event> seenEvents = JavaConversions.asJavaList(LEventStore.findByEntity(
+                    ap.getAppName(),
+                    "user",
+                    userEntityId,
+                    Option.apply((String) null),
+                    Option.apply(JavaConversions.asScalaIterable(ap.getSeenItemEvents()).toSeq()),
+                    Option.apply(Option.apply("item")),
+                    Option.apply((Option<String>) null),
+                    Option.apply((DateTime) null),
+                    Option.apply((DateTime) null),
+                    Option.apply(null),
+                    true,
+                    Duration.apply(200, TimeUnit.MILLISECONDS)
+            ).toSeq());
+
+            for (Event event: seenEvents) {
+                result.add(event.targetEntityId().get());
+            }
+
+            return result;
+        } catch (Exception e) {
+            logger.error("Error reading seen events for user " + userEntityId);
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 }

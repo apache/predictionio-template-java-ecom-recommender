@@ -49,7 +49,7 @@ def import_events(client):
         event="view",
         entity_type="user",
         entity_id=user_id,
-        target_entity_type="itemEntityId",
+        target_entity_type="item",
         target_entity_id=viewed_item
       )
       count += 1
@@ -62,7 +62,7 @@ def import_events(client):
         event="buy",
         entity_type="user",
         entity_id=user_id,
-        target_entity_type="itemEntityId",
+        target_entity_type="item",
         target_entity_id=item
       )
       count += 1

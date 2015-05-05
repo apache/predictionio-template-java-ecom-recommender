@@ -11,15 +11,19 @@ public class AlgorithmParams implements Params{
     private final double lambda;
     private final String appName;
     private final List<String> similarItemEvents;
+    private final boolean unseenOnly;
+    private final List<String> seenItemEvents;
 
 
-    public AlgorithmParams(long seed, int rank, int iteration, double lambda, String appName, List<String> similarItemEvents) {
+    public AlgorithmParams(long seed, int rank, int iteration, double lambda, String appName, List<String> similarItemEvents, boolean unseenOnly, List<String> seenItemEvents) {
         this.seed = seed;
         this.rank = rank;
         this.iteration = iteration;
         this.lambda = lambda;
         this.appName = appName;
         this.similarItemEvents = similarItemEvents;
+        this.unseenOnly = unseenOnly;
+        this.seenItemEvents = seenItemEvents;
     }
 
     public long getSeed() {
@@ -46,6 +50,14 @@ public class AlgorithmParams implements Params{
         return similarItemEvents;
     }
 
+    public boolean isUnseenOnly() {
+        return unseenOnly;
+    }
+
+    public List<String> getSeenItemEvents() {
+        return seenItemEvents;
+    }
+
     @Override
     public String toString() {
         return "AlgorithmParams{" +
@@ -55,6 +67,8 @@ public class AlgorithmParams implements Params{
                 ", lambda=" + lambda +
                 ", appName='" + appName + '\'' +
                 ", similarItemEvents=" + similarItemEvents +
+                ", unseenOnly=" + unseenOnly +
+                ", seenItemEvents=" + seenItemEvents +
                 '}';
     }
 }
