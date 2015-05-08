@@ -36,7 +36,6 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
     private final AlgorithmParams ap;
 
     public Algorithm(AlgorithmParams ap) {
-        super(Helper.ofType(Query.class));
         this.ap = ap;
     }
 
