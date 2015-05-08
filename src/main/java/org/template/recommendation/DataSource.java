@@ -6,7 +6,8 @@ import io.prediction.controller.EmptyParams;
 import io.prediction.controller.PDataSource;
 import io.prediction.data.storage.Event;
 import io.prediction.data.storage.PropertyMap;
-import io.prediction.data.store.PEventStore;
+import io.prediction.data.store.JavaOptionHelper;
+import io.prediction.data.store.PJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -16,7 +17,6 @@ import org.joda.time.DateTime;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.JavaConversions$;
-import scala.collection.Seq;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,21 +34,21 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
 
     @Override
     public TrainingData readTraining(SparkContext sc) {
-        JavaPairRDD<String,User> usersRDD = PEventStore.aggregateProperties(
+        JavaPairRDD<String,User> usersRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),
                 "user",
-                Option.apply((String) null),
-                Option.apply((DateTime) null),
-                Option.apply((DateTime) null),
-                Option.apply((Seq<String>) null),
-                sc).toJavaRDD()
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<List<String>>none(),
+                sc)
                 .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, User>() {
                     @Override
                     public Tuple2<String, User> call(Tuple2<String, PropertyMap> entityIdProperty) throws Exception {
                         Set<String> keys = JavaConversions$.MODULE$.setAsJavaSet(entityIdProperty._2().keySet());
                         Map<String, String> properties = new HashMap<>();
                         for (String key : keys) {
-                            properties.put(key, Helper.dataMapGet(entityIdProperty._2(), key, String.class));
+                            properties.put(key, entityIdProperty._2().get(key, String.class));
                         }
 
                         User user = new User(entityIdProperty._1(), ImmutableMap.copyOf(properties));
@@ -57,35 +57,35 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
                     }
                 });
 
-        JavaPairRDD<String, Item> itemsRDD = PEventStore.aggregateProperties(
+        JavaPairRDD<String, Item> itemsRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),
                 "item",
-                Option.apply((String) null),
-                Option.apply((DateTime) null),
-                Option.apply((DateTime) null),
-                Option.apply((Seq<String>) null),
-                sc).toJavaRDD()
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<List<String>>none(),
+                sc)
                 .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, Item>() {
                     @Override
                     public Tuple2<String, Item> call(Tuple2<String, PropertyMap> entityIdProperty) throws Exception {
-                        List<String> categories = JavaConversions$.MODULE$.seqAsJavaList(Helper.dataMapGetStringList(entityIdProperty._2(), "categories"));
+                        List<String> categories = entityIdProperty._2().getStringList("categories");
                         Item item = new Item(entityIdProperty._1(), ImmutableSet.copyOf(categories));
 
                         return new Tuple2<>(item.getEntityId(), item);
                     }
                 });
 
-        JavaRDD<UserItemEvent> viewEventsRDD = PEventStore.find(
+        JavaRDD<UserItemEvent> viewEventsRDD = PJavaEventStore.find(
                 dsp.getAppName(),
-                Option.apply((String) null),
-                Option.apply((DateTime) null),
-                Option.apply((DateTime) null),
-                Option.apply("user"),
-                Option.apply((String) null),
-                Option.apply(JavaConversions$.MODULE$.collectionAsScalaIterable(Collections.singleton("view")).toSeq()),
-                Option.apply((Option<String>) null),
-                Option.apply((Option<String>) null),
-                sc).toJavaRDD()
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.some("user"),
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.some(Collections.singletonList("view")),
+                JavaOptionHelper.<Option<String>>none(),
+                JavaOptionHelper.<Option<String>>none(),
+                sc)
                 .map(new Function<Event, UserItemEvent>() {
                     @Override
                     public UserItemEvent call(Event event) throws Exception {
@@ -93,17 +93,17 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
                     }
                 });
 
-        JavaRDD<UserItemEvent> buyEventsRDD = PEventStore.find(
+        JavaRDD<UserItemEvent> buyEventsRDD = PJavaEventStore.find(
                 dsp.getAppName(),
-                Option.apply((String) null),
-                Option.apply((DateTime) null),
-                Option.apply((DateTime) null),
-                Option.apply("user"),
-                Option.apply((String) null),
-                Option.apply(JavaConversions$.MODULE$.collectionAsScalaIterable(Collections.singleton("buy")).toSeq()),
-                Option.apply((Option<String>) null),
-                Option.apply((Option<String>) null),
-                sc).toJavaRDD()
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.<DateTime>none(),
+                JavaOptionHelper.some("user"),
+                JavaOptionHelper.<String>none(),
+                JavaOptionHelper.some(Collections.singletonList("buy")),
+                JavaOptionHelper.<Option<String>>none(),
+                JavaOptionHelper.<Option<String>>none(),
+                sc)
                 .map(new Function<Event, UserItemEvent>() {
                     @Override
                     public UserItemEvent call(Event event) throws Exception {

@@ -3,7 +3,8 @@ package org.template.recommendation;
 import com.google.common.collect.Sets;
 import io.prediction.controller.PAlgorithm;
 import io.prediction.data.storage.Event;
-import io.prediction.data.store.LEventStore;
+import io.prediction.data.store.JavaOptionHelper;
+import io.prediction.data.store.LJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -19,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
-import scala.collection.JavaConversions;
 import scala.concurrent.duration.Duration;
 
 import java.util.ArrayList;
@@ -195,20 +195,19 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
         try {
             List<double[]> result = new ArrayList<>();
 
-            List<Event> events = JavaConversions.asJavaList(LEventStore.findByEntity(
+            List<Event> events = LJavaEventStore.findByEntity(
                     ap.getAppName(),
                     "user",
                     query.getUserEntityId(),
-                    Option.apply((String) null),
-                    Option.apply(JavaConversions.asScalaIterable(ap.getSimilarItemEvents()).toSeq()),
-                    Option.apply(Option.apply("item")),
-                    Option.apply((Option<String>) null),
-                    Option.apply((DateTime) null),
-                    Option.apply((DateTime) null),
-                    Option.apply((Object) 10),
+                    JavaOptionHelper.<String>none(),
+                    JavaOptionHelper.some(ap.getSimilarItemEvents()),
+                    JavaOptionHelper.some(JavaOptionHelper.some("item")),
+                    JavaOptionHelper.<Option<String>>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.some(10),
                     true,
-                    Duration.apply(200, TimeUnit.MILLISECONDS)
-            ).toSeq());
+                    Duration.apply(10, TimeUnit.SECONDS));
 
             for (final Event event : events) {
                 if (event.targetEntityId().isDefined()) {
@@ -337,26 +336,25 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
 
     private Set<String> unavailableItemEntityIds() {
         try {
-            List<Event> unavailableConstraintEvents = JavaConversions.asJavaList(LEventStore.findByEntity(
+            List<Event> unavailableConstraintEvents = LJavaEventStore.findByEntity(
                     ap.getAppName(),
                     "constraint",
                     "unavailableItems",
-                    Option.apply((String) null),
-                    Option.apply(JavaConversions.asScalaIterable(Collections.singletonList("$set")).toSeq()),
-                    Option.apply(Option.apply((String) null)),
-                    Option.apply((Option<String>) null),
-                    Option.apply((DateTime) null),
-                    Option.apply((DateTime) null),
-                    Option.apply((Object) 1),
+                    JavaOptionHelper.<String>none(),
+                    JavaOptionHelper.some(Collections.singletonList("$set")),
+                    JavaOptionHelper.<Option<String>>none(),
+                    JavaOptionHelper.<Option<String>>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.some(1),
                     true,
-                    Duration.apply(200, TimeUnit.MILLISECONDS)
-            ).toSeq());
+                    Duration.apply(10, TimeUnit.SECONDS));
 
             if (unavailableConstraintEvents.isEmpty()) return Collections.emptySet();
 
             Event unavailableConstraint = unavailableConstraintEvents.get(0);
 
-            List<String> unavailableItems = JavaConversions.asJavaList(Helper.dataMapGetStringList(unavailableConstraint.properties(), "items"));
+            List<String> unavailableItems = unavailableConstraint.properties().getStringList("items");
 
             return new HashSet<>(unavailableItems);
         } catch (Exception e) {
@@ -370,22 +368,21 @@ public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedR
 
         try {
             Set<String> result = new HashSet<>();
-            List<Event> seenEvents = JavaConversions.asJavaList(LEventStore.findByEntity(
+            List<Event> seenEvents = LJavaEventStore.findByEntity(
                     ap.getAppName(),
                     "user",
                     userEntityId,
-                    Option.apply((String) null),
-                    Option.apply(JavaConversions.asScalaIterable(ap.getSeenItemEvents()).toSeq()),
-                    Option.apply(Option.apply("item")),
-                    Option.apply((Option<String>) null),
-                    Option.apply((DateTime) null),
-                    Option.apply((DateTime) null),
-                    Option.apply(null),
+                    JavaOptionHelper.<String>none(),
+                    JavaOptionHelper.some(ap.getSeenItemEvents()),
+                    JavaOptionHelper.some(JavaOptionHelper.some("item")),
+                    JavaOptionHelper.<Option<String>>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.<DateTime>none(),
+                    JavaOptionHelper.<Integer>none(),
                     true,
-                    Duration.apply(200, TimeUnit.MILLISECONDS)
-            ).toSeq());
+                    Duration.apply(10, TimeUnit.SECONDS));
 
-            for (Event event: seenEvents) {
+            for (Event event : seenEvents) {
                 result.add(event.targetEntityId().get());
             }
 
