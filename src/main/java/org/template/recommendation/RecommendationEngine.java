@@ -1,32 +1,21 @@
 package org.template.recommendation;
 
-import io.prediction.controller.*;
-import io.prediction.core.BaseAlgorithm;
+import io.prediction.controller.EmptyParams;
+import io.prediction.controller.Engine;
+import io.prediction.controller.EngineFactory;
 import io.prediction.core.BaseEngine;
-import scala.collection.JavaConversions;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
-public class RecommendationEngine implements EngineFactory {
+public class RecommendationEngine extends EngineFactory {
 
     @Override
     public BaseEngine<EmptyParams, Query, PredictedResult, Object> apply() {
-        Map<String, Class<? extends BaseAlgorithm<PreparedData, ?, Query, PredictedResult>>> algorithmMap = new HashMap<>(1);
-        algorithmMap.put("algo", Algorithm.class);
-
-        scala.collection.mutable.Map<String, Class<? extends BaseAlgorithm<PreparedData, ?, Query, PredictedResult>>> scalaMap = JavaConversions.asScalaMap(algorithmMap);
-
         return new Engine<>(
                 DataSource.class,
                 Preparator.class,
-                scalaMap.toMap(scala.Predef$.MODULE$.<scala.Tuple2<String, Class<? extends BaseAlgorithm<PreparedData, ?, Query, PredictedResult>> >>conforms()),
+                Collections.singletonMap("algo", Algorithm.class),
                 Serving.class
         );
-    }
-
-    @Override
-    public EngineParams engineParams(String key) {
-        return EngineFactory$class.engineParams(this, key);
     }
 }
