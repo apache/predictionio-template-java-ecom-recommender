@@ -1,6 +1,5 @@
 package org.template.recommendation;
 
-import io.prediction.controller.JavaPersistentModelLoader;
 import io.prediction.controller.Params;
 import io.prediction.controller.PersistentModel;
 import org.apache.spark.SparkContext;
@@ -68,7 +67,7 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
         return true;
     }
 
-    public static Model load(String id, AlgorithmParams params, SparkContext sc) {
+    public static Model load(String id, Params params, SparkContext sc) {
         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc);
         JavaPairRDD<Integer, double[]> userFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, double[]>>objectFile("/tmp/" + id + "/userFeatures"));
         JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, Tuple2<String, double[]>>>objectFile("/tmp/" + id + "/indexItemFeatures"));
