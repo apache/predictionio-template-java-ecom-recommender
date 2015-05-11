@@ -2,7 +2,7 @@
 
 ## Documentation
 
-Please refer to http://docs.prediction.io/templates/ecommercerecommendation/quickstart/
+Please refer to http://docs.prediction.io/templates/javaecommercerecommendation/quickstart/
 
 ## Versions
 
