@@ -1,7 +1,7 @@
 package org.template.recommendation;
 
 import com.google.common.collect.Sets;
-import io.prediction.controller.PAlgorithm;
+import io.prediction.controller.P2LAlgorithm;
 import io.prediction.data.storage.Event;
 import io.prediction.data.store.JavaOptionHelper;
 import io.prediction.data.store.LJavaEventStore;
@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
 import scala.concurrent.duration.Duration;
+import scala.reflect.ClassTag$;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,12 +31,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class Algorithm extends PAlgorithm<PreparedData, Model, Query, PredictedResult> {
+public class Algorithm extends P2LAlgorithm<PreparedData, Model, Query, PredictedResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(Algorithm.class);
     private final AlgorithmParams ap;
 
     public Algorithm(AlgorithmParams ap) {
+        super(ClassTag$.MODULE$.<Model>apply(Model.class), ClassTag$.MODULE$.<Query>apply(Query.class));
         this.ap = ap;
     }
 
