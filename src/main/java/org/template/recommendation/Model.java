@@ -69,12 +69,12 @@ public class Model implements Serializable, PersistentModel<AlgorithmParams> {
 
     public static Model load(String id, Params params, SparkContext sc) {
         JavaSparkContext jsc = JavaSparkContext.fromSparkContext(sc);
-        JavaPairRDD<Integer, double[]> userFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, double[]>>objectFile("/tmp/" + id + "/userFeatures"));
-        JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<Integer, Tuple2<String, double[]>>>objectFile("/tmp/" + id + "/indexItemFeatures"));
-        JavaPairRDD<String, Integer> userIndex = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/userIndex"));
-        JavaPairRDD<String, Integer> itemIndex = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/itemIndex"));
+        JavaPairRDD<Integer, double[]> userFeatures = JavaPairRDD.<Integer, double[]>fromJavaRDD(jsc.<Tuple2<Integer, double[]>>objectFile("/tmp/" + id + "/userFeatures"));
+        JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = JavaPairRDD.<Integer, Tuple2<String, double[]>>fromJavaRDD(jsc.<Tuple2<Integer, Tuple2<String, double[]>>>objectFile("/tmp/" + id + "/indexItemFeatures"));
+        JavaPairRDD<String, Integer> userIndex = JavaPairRDD.<String, Integer>fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/userIndex"));
+        JavaPairRDD<String, Integer> itemIndex = JavaPairRDD.<String, Integer>fromJavaRDD(jsc.<Tuple2<String, Integer>>objectFile("/tmp/" + id + "/itemIndex"));
         JavaRDD<ItemScore> itemPopularityScore = jsc.objectFile("/tmp/" + id + "/itemPopularityScore");
-        JavaPairRDD<String, Item> items = JavaPairRDD.fromJavaRDD(jsc.<Tuple2<String, Item>>objectFile("/tmp/" + id + "/items"));
+        JavaPairRDD<String, Item> items = JavaPairRDD.<String, Item>fromJavaRDD(jsc.<Tuple2<String, Item>>objectFile("/tmp/" + id + "/items"));
 
         logger.info("loaded model");
         return new Model(userFeatures, indexItemFeatures, userIndex, itemIndex, itemPopularityScore, items);

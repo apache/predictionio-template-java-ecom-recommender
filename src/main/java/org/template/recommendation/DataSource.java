@@ -3,11 +3,11 @@ package org.template.recommendation;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.prediction.controller.EmptyParams;
-import io.prediction.controller.PDataSource;
+import io.prediction.controller.java.PJavaDataSource;
 import io.prediction.data.storage.Event;
 import io.prediction.data.storage.PropertyMap;
-import io.prediction.data.store.JavaOptionHelper;
-import io.prediction.data.store.PJavaEventStore;
+import io.prediction.data.store.java.OptionHelper;
+import io.prediction.data.store.java.PJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Object> {
+public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Object> {
 
     private final DataSourceParams dsp;
 
@@ -37,10 +37,10 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
         JavaPairRDD<String,User> usersRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),
                 "user",
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<List<String>>none(),
+                OptionHelper.<String>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<List<String>>none(),
                 sc)
                 .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, User>() {
                     @Override
@@ -60,10 +60,10 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
         JavaPairRDD<String, Item> itemsRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),
                 "item",
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<List<String>>none(),
+                OptionHelper.<String>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<List<String>>none(),
                 sc)
                 .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, Item>() {
                     @Override
@@ -77,14 +77,14 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
 
         JavaRDD<UserItemEvent> viewEventsRDD = PJavaEventStore.find(
                 dsp.getAppName(),
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.some("user"),
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.some(Collections.singletonList("view")),
-                JavaOptionHelper.<Option<String>>none(),
-                JavaOptionHelper.<Option<String>>none(),
+                OptionHelper.<String>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.some("user"),
+                OptionHelper.<String>none(),
+                OptionHelper.some(Collections.singletonList("view")),
+                OptionHelper.<Option<String>>none(),
+                OptionHelper.<Option<String>>none(),
                 sc)
                 .map(new Function<Event, UserItemEvent>() {
                     @Override
@@ -95,14 +95,14 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Ob
 
         JavaRDD<UserItemEvent> buyEventsRDD = PJavaEventStore.find(
                 dsp.getAppName(),
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.<DateTime>none(),
-                JavaOptionHelper.some("user"),
-                JavaOptionHelper.<String>none(),
-                JavaOptionHelper.some(Collections.singletonList("buy")),
-                JavaOptionHelper.<Option<String>>none(),
-                JavaOptionHelper.<Option<String>>none(),
+                OptionHelper.<String>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.<DateTime>none(),
+                OptionHelper.some("user"),
+                OptionHelper.<String>none(),
+                OptionHelper.some(Collections.singletonList("buy")),
+                OptionHelper.<Option<String>>none(),
+                OptionHelper.<Option<String>>none(),
                 sc)
                 .map(new Function<Event, UserItemEvent>() {
                     @Override

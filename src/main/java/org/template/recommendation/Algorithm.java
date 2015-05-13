@@ -1,10 +1,10 @@
 package org.template.recommendation;
 
 import com.google.common.collect.Sets;
-import io.prediction.controller.P2LAlgorithm;
+import io.prediction.controller.java.P2LJavaAlgorithm;
 import io.prediction.data.storage.Event;
-import io.prediction.data.store.JavaOptionHelper;
-import io.prediction.data.store.LJavaEventStore;
+import io.prediction.data.store.java.OptionHelper;
+import io.prediction.data.store.java.LJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
 import scala.concurrent.duration.Duration;
-import scala.reflect.ClassTag$;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,13 +30,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class Algorithm extends P2LAlgorithm<PreparedData, Model, Query, PredictedResult> {
+public class Algorithm extends P2LJavaAlgorithm<PreparedData, Model, Query, PredictedResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(Algorithm.class);
     private final AlgorithmParams ap;
 
     public Algorithm(AlgorithmParams ap) {
-        super(ClassTag$.MODULE$.<Model>apply(Model.class), ClassTag$.MODULE$.<Query>apply(Query.class));
         this.ap = ap;
     }
 
@@ -200,13 +198,13 @@ public class Algorithm extends P2LAlgorithm<PreparedData, Model, Query, Predicte
                     ap.getAppName(),
                     "user",
                     query.getUserEntityId(),
-                    JavaOptionHelper.<String>none(),
-                    JavaOptionHelper.some(ap.getSimilarItemEvents()),
-                    JavaOptionHelper.some(JavaOptionHelper.some("item")),
-                    JavaOptionHelper.<Option<String>>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.some(10),
+                    OptionHelper.<String>none(),
+                    OptionHelper.some(ap.getSimilarItemEvents()),
+                    OptionHelper.some(OptionHelper.some("item")),
+                    OptionHelper.<Option<String>>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.some(10),
                     true,
                     Duration.apply(10, TimeUnit.SECONDS));
 
@@ -341,13 +339,13 @@ public class Algorithm extends P2LAlgorithm<PreparedData, Model, Query, Predicte
                     ap.getAppName(),
                     "constraint",
                     "unavailableItems",
-                    JavaOptionHelper.<String>none(),
-                    JavaOptionHelper.some(Collections.singletonList("$set")),
-                    JavaOptionHelper.<Option<String>>none(),
-                    JavaOptionHelper.<Option<String>>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.some(1),
+                    OptionHelper.<String>none(),
+                    OptionHelper.some(Collections.singletonList("$set")),
+                    OptionHelper.<Option<String>>none(),
+                    OptionHelper.<Option<String>>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.some(1),
                     true,
                     Duration.apply(10, TimeUnit.SECONDS));
 
@@ -373,13 +371,13 @@ public class Algorithm extends P2LAlgorithm<PreparedData, Model, Query, Predicte
                     ap.getAppName(),
                     "user",
                     userEntityId,
-                    JavaOptionHelper.<String>none(),
-                    JavaOptionHelper.some(ap.getSeenItemEvents()),
-                    JavaOptionHelper.some(JavaOptionHelper.some("item")),
-                    JavaOptionHelper.<Option<String>>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.<DateTime>none(),
-                    JavaOptionHelper.<Integer>none(),
+                    OptionHelper.<String>none(),
+                    OptionHelper.some(ap.getSeenItemEvents()),
+                    OptionHelper.some(OptionHelper.some("item")),
+                    OptionHelper.<Option<String>>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.<DateTime>none(),
+                    OptionHelper.<Integer>none(),
                     true,
                     Duration.apply(10, TimeUnit.SECONDS));
 
