@@ -7,11 +7,12 @@ import io.prediction.core.BaseAlgorithm;
 import io.prediction.core.BaseEngine;
 
 import java.util.Collections;
+import java.util.Set;
 
 public class RecommendationEngine extends EngineFactory {
 
     @Override
-    public BaseEngine<EmptyParams, Query, PredictedResult, Object> apply() {
+    public BaseEngine<EmptyParams, Query, PredictedResult, Set<String>> apply() {
         return new Engine<>(
                 DataSource.class,
                 Preparator.class,

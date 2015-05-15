@@ -1,19 +1,21 @@
 package org.template.recommendation;
 
 import com.google.common.collect.Sets;
-import io.prediction.controller.java.P2LJavaAlgorithm;
+import io.prediction.controller.java.PJavaAlgorithm;
 import io.prediction.data.storage.Event;
-import io.prediction.data.store.java.OptionHelper;
 import io.prediction.data.store.java.LJavaEventStore;
+import io.prediction.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.mllib.recommendation.ALS;
 import org.apache.spark.mllib.recommendation.MatrixFactorizationModel;
 import org.apache.spark.mllib.recommendation.Rating;
+import org.apache.spark.rdd.RDD;
 import org.jblas.DoubleMatrix;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -30,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class Algorithm extends P2LJavaAlgorithm<PreparedData, Model, Query, PredictedResult> {
+public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, PredictedResult> {
 
     private static final Logger logger = LoggerFactory.getLogger(Algorithm.class);
     private final AlgorithmParams ap;
@@ -190,6 +192,18 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, Model, Query, Pred
         }
     }
 
+    @Override
+    public RDD<Tuple2<Object, PredictedResult>> batchPredict(Model model, RDD<Tuple2<Object, Query>> qs) {
+        List<Tuple2<Object, Query>> indexQueries = qs.toJavaRDD().collect();
+        List<Tuple2<Object, PredictedResult>> results = new ArrayList<>();
+
+        for (Tuple2<Object, Query> indexQuery : indexQueries) {
+            results.add(new Tuple2<>(indexQuery._1(), predict(model, indexQuery._2())));
+        }
+
+        return new JavaSparkContext(qs.sparkContext()).parallelize(results).rdd();
+    }
+
     private List<double[]> getRecentProductFeatures(Query query, Model model) {
         try {
             List<double[]> result = new ArrayList<>();
@@ -220,12 +234,18 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, Model, Query, Pred
                     final Integer itemIndex = filtered.first()._2();
 
                     if (!filtered.isEmpty()) {
-                        result.add(model.getIndexItemFeatures().filter(new Function<Tuple2<Integer, Tuple2<String, double[]>>, Boolean>() {
+
+                        JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = model.getIndexItemFeatures().filter(new Function<Tuple2<Integer, Tuple2<String, double[]>>, Boolean>() {
                             @Override
                             public Boolean call(Tuple2<Integer, Tuple2<String, double[]>> element) throws Exception {
                                 return itemIndex.equals(element._1());
                             }
-                        }).first()._2()._2());
+                        });
+
+                        List<Tuple2<Integer, Tuple2<String, double[]>>> oneIndexItemFeatures = indexItemFeatures.collect();
+                        if (oneIndexItemFeatures.size() > 0) {
+                            result.add(oneIndexItemFeatures.get(0)._2()._2());
+                        }
                     }
                 }
             }
@@ -275,7 +295,6 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, Model, Query, Pred
     private List<ItemScore> mostPopularItems(Model model, Query query) {
         List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
-
         return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
     }
 

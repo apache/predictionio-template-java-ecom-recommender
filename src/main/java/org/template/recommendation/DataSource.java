@@ -13,18 +13,23 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.rdd.RDD;
 import org.joda.time.DateTime;
 import scala.Option;
 import scala.Tuple2;
+import scala.Tuple3;
+import scala.collection.JavaConversions;
 import scala.collection.JavaConversions$;
+import scala.collection.Seq;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Object> {
+public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>> {
 
     private final DataSourceParams dsp;
 
@@ -112,5 +117,34 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
                 });
 
         return new TrainingData(usersRDD, itemsRDD, viewEventsRDD, buyEventsRDD);
+    }
+
+    @Override
+    public Seq<Tuple3<TrainingData, EmptyParams, RDD<Tuple2<Query, Set<String>>>>> readEval(SparkContext sc) {
+        TrainingData all = readTraining(sc);
+        double[] split = {0.5, 0.5};
+        JavaRDD<UserItemEvent>[] trainingAndTestingViews = all.getViewEvents().randomSplit(split, 1);
+        JavaRDD<UserItemEvent>[] trainingAndTestingBuys = all.getBuyEvents().randomSplit(split, 1);
+
+        RDD<Tuple2<Query, Set<String>>> queryActual = JavaPairRDD.toRDD(trainingAndTestingViews[1].union(trainingAndTestingBuys[1]).groupBy(new Function<UserItemEvent, String>() {
+            @Override
+            public String call(UserItemEvent event) throws Exception {
+                return event.getUser();
+            }
+        }).mapToPair(new PairFunction<Tuple2<String, Iterable<UserItemEvent>>, Query, Set<String>>() {
+            @Override
+            public Tuple2<Query, Set<String>> call(Tuple2<String, Iterable<UserItemEvent>> userEvents) throws Exception {
+                Query query = new Query(userEvents._1(), 10, Collections.<String>emptySet(), Collections.<String>emptySet(), Collections.<String>emptySet());
+                Set<String> actualSet = new HashSet<>();
+                for (UserItemEvent event : userEvents._2()) {
+                    actualSet.add(event.getItem());
+                }
+                return new Tuple2<>(query, actualSet);
+            }
+        }));
+
+        Tuple3<TrainingData, EmptyParams, RDD<Tuple2<Query, Set<String>>>> setData = new Tuple3<>(new TrainingData(all.getUsers(), all.getItems(), trainingAndTestingViews[0], trainingAndTestingBuys[0]), new EmptyParams(), queryActual);
+
+        return JavaConversions.asScalaIterable(Collections.singletonList(setData)).toSeq();
     }
 }
