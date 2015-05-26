@@ -270,7 +270,7 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
         itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
 
-        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
+        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
     }
 
     private List<ItemScore> similarItems(final List<double[]> recentProductFeatures, Model model, Query query) {
@@ -289,13 +289,13 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
         itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
 
-        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
+        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
     }
 
     private List<ItemScore> mostPopularItems(Model model, Query query) {
         List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
         Collections.sort(itemScores, Collections.reverseOrder());
-        return itemScores.subList(0, Math.min(query.getNumber(), itemScores.size()));
+        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
     }
 
     private double cosineSimilarity(double[] a, double[] b) {
