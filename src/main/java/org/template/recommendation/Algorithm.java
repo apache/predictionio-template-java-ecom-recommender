@@ -157,7 +157,7 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
 
         JavaPairRDD<Integer, Tuple2<String, double[]>> indexItemFeatures = indexItemRDD.join(productFeaturesRDD);
 
-        return new Model(userFeatures, indexItemFeatures, userIndexRDD, itemIndexRDD, itemPopularityScore, data.getItems());
+        return new Model(userFeatures, indexItemFeatures, userIndexRDD, itemIndexRDD, itemPopularityScore, data.getItems().collectAsMap());
     }
 
     @Override
@@ -260,21 +260,19 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
     private List<ItemScore> topItemsForUser(double[] userFeature, Model model, Query query) {
         final DoubleMatrix userMatrix = new DoubleMatrix(userFeature);
 
-        List<ItemScore> itemScores = model.getIndexItemFeatures().map(new Function<Tuple2<Integer, Tuple2<String, double[]>>, ItemScore>() {
+        JavaRDD<ItemScore> itemScores = model.getIndexItemFeatures().map(new Function<Tuple2<Integer, Tuple2<String, double[]>>, ItemScore>() {
             @Override
             public ItemScore call(Tuple2<Integer, Tuple2<String, double[]>> element) throws Exception {
                 return new ItemScore(element._2()._1(), userMatrix.dot(new DoubleMatrix(element._2()._2())));
             }
-        }).collect();
+        });
 
         itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
-        Collections.sort(itemScores, Collections.reverseOrder());
-
-        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
+        return sortAndTake(itemScores, query.getNumber());
     }
 
     private List<ItemScore> similarItems(final List<double[]> recentProductFeatures, Model model, Query query) {
-        List<ItemScore> itemScores = model.getIndexItemFeatures().map(new Function<Tuple2<Integer, Tuple2<String, double[]>>, ItemScore>() {
+        JavaRDD<ItemScore> itemScores = model.getIndexItemFeatures().map(new Function<Tuple2<Integer, Tuple2<String, double[]>>, ItemScore>() {
             @Override
             public ItemScore call(Tuple2<Integer, Tuple2<String, double[]>> element) throws Exception {
                 double similarity = 0.0;
@@ -284,18 +282,15 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
 
                 return new ItemScore(element._2()._1(), similarity);
             }
-        }).collect();
+        });
 
         itemScores = validScores(itemScores, query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
-        Collections.sort(itemScores, Collections.reverseOrder());
-
-        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
+        return sortAndTake(itemScores, query.getNumber());
     }
 
     private List<ItemScore> mostPopularItems(Model model, Query query) {
-        List<ItemScore> itemScores = validScores(model.getItemPopularityScore().collect(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
-        Collections.sort(itemScores, Collections.reverseOrder());
-        return new ArrayList<>(itemScores.subList(0, Math.min(query.getNumber(), itemScores.size())));
+        JavaRDD<ItemScore> itemScores = validScores(model.getItemPopularityScore(), query.getWhitelist(), query.getBlacklist(), query.getCategories(), model.getItems(), query.getUserEntityId());
+        return sortAndTake(itemScores, query.getNumber());
     }
 
     private double cosineSimilarity(double[] a, double[] b) {
@@ -305,31 +300,32 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
         return matrixA.dot(matrixB) / (matrixA.norm2() * matrixB.norm2());
     }
 
-    private List<ItemScore> validScores(List<ItemScore> all, Set<String> whitelist, Set<String> blacklist, Set<String> categories, JavaPairRDD<String, Item> items, String userEntityId) {
-        List<ItemScore> result = new ArrayList<>();
-        Set<String> seenItemEntityIds = seenItemEntityIds(userEntityId);
-        Set<String> unavailableItemEntityIds = unavailableItemEntityIds();
-        for (final ItemScore itemScore : all) {
-            JavaPairRDD<String, Item> possibleItems = items.filter(new Function<Tuple2<String, Item>, Boolean>() {
-                @Override
-                public Boolean call(Tuple2<String, Item> element) throws Exception {
-                    return element._1().equals(itemScore.getItemEntityId());
-                }
-            });
+    private List<ItemScore> sortAndTake(JavaRDD<ItemScore> all, int number) {
+        return all.sortBy(new Function<ItemScore, Double>() {
+            @Override
+            public Double call(ItemScore itemScore) throws Exception {
+                return itemScore.getScore();
+            }
+        }, false, all.partitions().size()).take(number);
+    }
 
-            if (!possibleItems.isEmpty()) {
-                Item item = possibleItems.first()._2();
-                if (passWhitelistCriteria(whitelist, item.getEntityId())
+    private JavaRDD<ItemScore> validScores(JavaRDD<ItemScore> all, final Set<String> whitelist, final Set<String> blacklist, final Set<String> categories, final Map<String, Item> items, String userEntityId) {
+        final Set<String> seenItemEntityIds = seenItemEntityIds(userEntityId);
+        final Set<String> unavailableItemEntityIds = unavailableItemEntityIds();
+
+        return all.filter(new Function<ItemScore, Boolean>() {
+            @Override
+            public Boolean call(ItemScore itemScore) throws Exception {
+                Item item = items.get(itemScore.getItemEntityId());
+
+                return (item != null
+                        && passWhitelistCriteria(whitelist, item.getEntityId())
                         && passBlacklistCriteria(blacklist, item.getEntityId())
                         && passCategoryCriteria(categories, item)
                         && passUnseenCriteria(seenItemEntityIds, item.getEntityId())
-                        && passAvailabilityCriteria(unavailableItemEntityIds, item.getEntityId())) {
-                    result.add(itemScore);
-                }
+                        && passAvailabilityCriteria(unavailableItemEntityIds, item.getEntityId()));
             }
-        }
-
-        return result;
+        });
     }
 
     private boolean passWhitelistCriteria(Set<String> whitelist, String itemEntityId) {
