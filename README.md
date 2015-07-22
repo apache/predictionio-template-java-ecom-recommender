@@ -6,6 +6,9 @@ Please refer to http://docs.prediction.io/templates/javaecommercerecommendation/
 
 ## Versions
 
+### v0.1.1
+- parallelize filtering valid items
+
 ### v0.1.0
 
 - initial version
