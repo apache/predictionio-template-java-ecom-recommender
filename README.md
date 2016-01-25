@@ -6,6 +6,9 @@ Please refer to http://docs.prediction.io/templates/javaecommercerecommendation/
 
 ## Versions
 
+### v0.1.2
+  add "org.jblas" dependency in build.sbt
+
 ### v0.1.1
 - parallelize filtering valid items
 
