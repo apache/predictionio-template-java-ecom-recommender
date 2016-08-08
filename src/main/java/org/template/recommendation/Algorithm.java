@@ -172,12 +172,16 @@ public class Algorithm extends PJavaAlgorithm<PreparedData, Model, Query, Predic
         double[] userFeature = null;
         if (!matchedUser.isEmpty()) {
             final Integer matchedUserIndex = matchedUser.first()._2();
-            userFeature = model.getUserFeatures().filter(new Function<Tuple2<Integer, double[]>, Boolean>() {
-                @Override
-                public Boolean call(Tuple2<Integer, double[]> element) throws Exception {
-                    return element._1().equals(matchedUserIndex);
-                }
-            }).first()._2();
+            if (!model.getUserFeatures().isEmpty()){
+              JavaPairRDD<Integer, double[]> filteredFeatures  = model.getUserFeatures().filter(new Function<Tuple2<Integer, double[]>, Boolean>() {
+                    @Override
+                    public Boolean call(Tuple2<Integer, double[]> element) throws Exception {
+                        return element._1().equals(matchedUserIndex);
+                    }
+                });
+                if (filteredFeatures != null && !filteredFeatures.isEmpty())
+                  userFeature = filteredFeatures.first()._2();
+            }
         }
 
         if (userFeature != null) {
