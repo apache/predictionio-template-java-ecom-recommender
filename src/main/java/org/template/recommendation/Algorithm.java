@@ -1,10 +1,10 @@
 package org.template.recommendation;
 
 import com.google.common.collect.Sets;
-import io.prediction.controller.java.PJavaAlgorithm;
-import io.prediction.data.storage.Event;
-import io.prediction.data.store.java.LJavaEventStore;
-import io.prediction.data.store.java.OptionHelper;
+import org.apache.predictionio.controller.java.PJavaAlgorithm;
+import org.apache.predictionio.data.storage.Event;
+import org.apache.predictionio.data.store.java.LJavaEventStore;
+import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;

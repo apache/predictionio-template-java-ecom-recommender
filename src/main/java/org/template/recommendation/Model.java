@@ -1,7 +1,7 @@
 package org.template.recommendation;
 
-import io.prediction.controller.Params;
-import io.prediction.controller.PersistentModel;
+import org.apache.predictionio.controller.Params;
+import org.apache.predictionio.controller.PersistentModel;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;

@@ -2,12 +2,12 @@ package org.template.recommendation;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.prediction.controller.EmptyParams;
-import io.prediction.controller.java.PJavaDataSource;
-import io.prediction.data.storage.Event;
-import io.prediction.data.storage.PropertyMap;
-import io.prediction.data.store.java.OptionHelper;
-import io.prediction.data.store.java.PJavaEventStore;
+import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.java.PJavaDataSource;
+import org.apache.predictionio.data.storage.Event;
+import org.apache.predictionio.data.storage.PropertyMap;
+import org.apache.predictionio.data.store.java.OptionHelper;
+import org.apache.predictionio.data.store.java.PJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;

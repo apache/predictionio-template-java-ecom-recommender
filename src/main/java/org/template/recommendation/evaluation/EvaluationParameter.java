@@ -1,8 +1,8 @@
 package org.template.recommendation.evaluation;
 
-import io.prediction.controller.EmptyParams;
-import io.prediction.controller.EngineParams;
-import io.prediction.controller.java.JavaEngineParamsGenerator;
+import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.EngineParams;
+import org.apache.predictionio.controller.java.JavaEngineParamsGenerator;
 import org.template.recommendation.AlgorithmParams;
 import org.template.recommendation.DataSourceParams;
 

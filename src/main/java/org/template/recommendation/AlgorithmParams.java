@@ -1,6 +1,6 @@
 package org.template.recommendation;
 
-import io.prediction.controller.Params;
+import org.apache.predictionio.controller.Params;
 
 import java.util.List;
 

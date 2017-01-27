@@ -1,8 +1,8 @@
 package org.template.recommendation.evaluation;
 
-import io.prediction.controller.Engine;
-import io.prediction.controller.java.JavaEvaluation;
-import io.prediction.core.BaseAlgorithm;
+import org.apache.predictionio.controller.Engine;
+import org.apache.predictionio.controller.java.JavaEvaluation;
+import org.apache.predictionio.core.BaseAlgorithm;
 import org.template.recommendation.Algorithm;
 import org.template.recommendation.DataSource;
 import org.template.recommendation.PredictedResult;

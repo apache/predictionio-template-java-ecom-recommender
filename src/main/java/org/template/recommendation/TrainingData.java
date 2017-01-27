@@ -1,6 +1,6 @@
 package org.template.recommendation;
 
-import io.prediction.controller.SanityCheck;
+import org.apache.predictionio.controller.SanityCheck;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 

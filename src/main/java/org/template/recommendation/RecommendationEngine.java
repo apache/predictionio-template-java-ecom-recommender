@@ -1,10 +1,10 @@
 package org.template.recommendation;
 
-import io.prediction.controller.EmptyParams;
-import io.prediction.controller.Engine;
-import io.prediction.controller.EngineFactory;
-import io.prediction.core.BaseAlgorithm;
-import io.prediction.core.BaseEngine;
+import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.Engine;
+import org.apache.predictionio.controller.EngineFactory;
+import org.apache.predictionio.core.BaseAlgorithm;
+import org.apache.predictionio.core.BaseEngine;
 
 import java.util.Collections;
 import java.util.Set;
