@@ -1,4 +1,4 @@
-package org.template.recommendation;
+package org.example.recommendation;
 
 import java.io.Serializable;
 import java.util.Set;

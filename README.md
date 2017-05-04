@@ -1,10 +1,17 @@
-# E-Commerce Recommendation Template
+# E-Commerce Recommendation Template in Java
 
 ## Documentation
 
-Please refer to http://docs.prediction.io/templates/javaecommercerecommendation/quickstart/
+Please refer to
+http://predictionio.incubator.apache.org/templates/javaecommercerecommendation/quickstart/.
 
 ## Versions
+
+### v0.11.0-incubating
+
+- Update to build with PredictionIO 0.11.0-incubating
+- Rename Java package name
+- Update SBT and plugin versions
 
 ### v0.1.2
   add "org.jblas" dependency in build.sbt
@@ -19,13 +26,13 @@ Please refer to http://docs.prediction.io/templates/javaecommercerecommendation/
 
 ## Development Notes
 
-### import sample data
+### Import Sample Data
 
 ```
 $ python data/import_eventserver.py --access_key <your_access_key>
 ```
 
-### query
+### Query
 
 normal:
 
@@ -77,7 +84,7 @@ curl -H "Content-Type: application/json" \
 http://localhost:8000/queries.json
 ```
 
-### handle new user
+### Handle New User
 
 new user:
 
@@ -120,7 +127,7 @@ curl -i -X POST http://localhost:7070/events.json?accessKey=$accessKey \
 
 ```
 
-## handle unavailable items
+### Handle Unavailable Items
 
 Set the following items as unavailable (need to specify complete list each time when this list is changed):
 

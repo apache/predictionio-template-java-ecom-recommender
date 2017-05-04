@@ -1,10 +1,10 @@
-package org.template.recommendation.evaluation;
+package org.example.recommendation.evaluation;
 
-import io.prediction.controller.EmptyParams;
-import io.prediction.controller.EngineParams;
-import io.prediction.controller.java.JavaEngineParamsGenerator;
-import org.template.recommendation.AlgorithmParams;
-import org.template.recommendation.DataSourceParams;
+import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.EngineParams;
+import org.apache.predictionio.controller.java.JavaEngineParamsGenerator;
+import org.example.recommendation.AlgorithmParams;
+import org.example.recommendation.DataSourceParams;
 
 import java.util.Arrays;
 import java.util.Collections;

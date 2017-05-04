@@ -1,14 +1,14 @@
-package org.template.recommendation.evaluation;
+package org.example.recommendation.evaluation;
 
-import io.prediction.controller.EmptyParams;
-import io.prediction.controller.Metric;
-import io.prediction.controller.java.SerializableComparator;
+import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.Metric;
+import org.apache.predictionio.controller.java.SerializableComparator;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.RDD;
-import org.template.recommendation.ItemScore;
-import org.template.recommendation.PredictedResult;
-import org.template.recommendation.Query;
+import org.example.recommendation.ItemScore;
+import org.example.recommendation.PredictedResult;
+import org.example.recommendation.Query;
 import scala.Tuple2;
 import scala.Tuple3;
 import scala.collection.JavaConversions;
