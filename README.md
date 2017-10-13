@@ -7,6 +7,11 @@ http://predictionio.incubator.apache.org/templates/javaecommercerecommendation/q
 
 ## Versions
 
+### v0.12.0-incubating
+- Bump version number to track PredictionIO version
+- Sets default build targets according to PredictionIO
+- Fix compilation issue with Scala 2.11
+
 ### v0.11.0-incubating
 
 - Update to build with PredictionIO 0.11.0-incubating

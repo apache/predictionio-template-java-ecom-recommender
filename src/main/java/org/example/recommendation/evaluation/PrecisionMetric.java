@@ -34,7 +34,7 @@ public class PrecisionMetric extends Metric<EmptyParams, Query, PredictedResult,
 
     @Override
     public Double calculate(SparkContext sc, Seq<Tuple2<EmptyParams, RDD<Tuple3<Query, PredictedResult, Set<String>>>>> qpas) {
-        List<Tuple2<EmptyParams, RDD<Tuple3<Query, PredictedResult, Set<String>>>>> sets = JavaConversions.asJavaList(qpas);
+        List<Tuple2<EmptyParams, RDD<Tuple3<Query, PredictedResult, Set<String>>>>> sets = JavaConversions.seqAsJavaList(qpas);
         List<Double> allSetResults = new ArrayList<>();
 
         for (Tuple2<EmptyParams, RDD<Tuple3<Query, PredictedResult, Set<String>>>> set : sets) {
