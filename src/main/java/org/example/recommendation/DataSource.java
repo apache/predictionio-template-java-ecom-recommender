@@ -145,6 +145,6 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
 
         Tuple3<TrainingData, EmptyParams, RDD<Tuple2<Query, Set<String>>>> setData = new Tuple3<>(new TrainingData(all.getUsers(), all.getItems(), trainingAndTestingViews[0], trainingAndTestingBuys[0]), new EmptyParams(), queryActual);
 
-        return JavaConversions.asScalaIterable(Collections.singletonList(setData)).toSeq();
+        return JavaConversions.iterableAsScalaIterable(Collections.singletonList(setData)).toSeq();
     }
 }
